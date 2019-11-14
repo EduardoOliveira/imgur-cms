@@ -1,8 +1,13 @@
 {
-    "description": "",
-    "name": "eduardooliveira/imgur-cms",
-    "type": "library",
-    "require": {
-        "j0k3r/php-imgur-api-client": "^3.0.0"
+  "description": "",
+  "name": "eduardooliveira/imgur-cms",
+  "type": "library",
+  "require": {
+    "j0k3r/php-imgur-api-client": "^3.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "ImgurCms\\": "src/"
     }
+  }
 }
