@@ -6,7 +6,11 @@ namespace ImgurCms;
 
 use Imgur\Client;
 use Imgur\Pager\BasicPager;
+use ImgurCms\Core\Models\Context;
+use ImgurCms\Core\Models\ContextItem;
+use ImgurCms\Core\Models\Post;
 use ImgurCms\Core\Storage\StorageDriver;
+use stdClass;
 
 class ImgurCms {
 
@@ -35,10 +39,11 @@ class ImgurCms {
     }
 
     public static function fetchPosts($tag = "") {
-
+        if ($tag == "") {
+            $tag = self::$config->mainTag;
+        }
         $albums = self::fetchAlbums($tag);
-        self::$storage->setCollection($albums);
-        return $albums;
+        self::organizeAndStore($albums, $tag);
     }
 
     public static function fetchAlbums($tag) {
@@ -75,11 +80,70 @@ class ImgurCms {
         return $albums;
     }
 
+    private static function organizeAndStore($collection, $contextName) {
+
+        $contextObj = new Context();
+        $contextObj->name = $contextName;
+
+        foreach ($collection as $i => $e) {
+
+            $item = new ContextItem();
+            $item->id = $e['id'];
+            $item->title = $e['title'];
+            $item->user = $e['account_url'];
+            $item->description = $e['description'];
+
+            $post = new Post();
+            $post->id = $e['id'];
+            $post->user = $e['account_url'];
+            $post->title = $e['title'];
+            $post->description = $e['description'];
+            $post->media = [];
+
+            if (empty($e['images'])) {
+                break;
+            }
+
+            foreach ($e['images'] as $media) {
+                if (empty($item->cover) && strpos($media['type'], 'image') === 0) {
+                    $item->cover = $media['link'];
+
+                }
+                if (empty($post->cover) && strpos($media['type'], 'image') === 0) {
+                    $post->cover = $media['link'];
+                }
+                $m = new stdClass();
+                $m->link = $media['link'];
+                $m->date = $media['datetime'];
+                $m->description = $media['description'];
+                $m->animated = $media['animated'];
+                $post->media[] = $m;
+            }
+
+            $item->tags = [];
+            foreach ($e['tags'] as $tag) {
+                $t = new stdClass();
+                $t->name = $tag['name'];
+                $t->displayName = $tag['display_name'];
+                $item->tags[] = $t;
+            }
+
+            $contextObj->items[] = $item;
+
+            self::$storage->setPost($post);
+        }
+
+        self::$storage->setContext($contextObj);
+    }
+
     public static function getPost($post) {
         return self::$storage->getPost($post);
     }
 
-    public static function getPage($page) {
-        return self::$storage->getPage($page);
+    public static function getPage($page, $contextName = "") {
+        if (empty($contextName)) {
+            $contextName = self::$config->mainTag;
+        }
+        return self::$storage->getPage($page, $contextName);
     }
 }

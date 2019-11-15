@@ -6,9 +6,11 @@ namespace ImgurCms\Core\Storage;
 
 interface StorageDriver {
 
-    public function setCollection($collection);
+    public function setContext($context);
 
-    public function getPage($idx);
+    public function setPost($post);
+
+    public function getPage($idx, $contextName);
 
     public function getPost($id);
 
